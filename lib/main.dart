@@ -32,30 +32,52 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  String errorMessage = '';
   static const platform = MethodChannel('com.anikuttan/battery');
+  static const platformBluetooth =
+      MethodChannel('com.anikuttan/bluetooth_On_OFF');
+  String bluetoothOnMethodName = 'getBluetoothStatus';
+
   String batteryLevel = "Unknown";
-  BluetoothConnection isBluetoothOn = BluetoothConnection.unKnown;
+  BluetoothConnection bluetoothStatus = BluetoothConnection.unKnown;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkBluetooth();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          title: const Text('AppBar'),
-        ),
-        body: Center(
-          child: Column(children: [
-            Text(
-              batteryLevel,
-              style: const TextStyle(fontSize: 30),
+      appBar: AppBar(
+        title: const Text('AppBar'),
+      ),
+      body: Center(
+        child: Column(children: [
+          Text(
+            batteryLevel,
+            style: const TextStyle(fontSize: 20),
+          ),
+          const SizedBox(
+            height: 10,
+          ),
+          ElevatedButton(
+            onPressed: _getBatteryLevel,
+            child: const Text("Get battery level"),
+          ),
+          ListTile(
+            title: const Text("Hello"),
+            trailing: ElevatedButton(
+              onPressed: () {},
+              child: bluetoothStatus == BluetoothConnection.bluetoothON
+                  ? const Text('ON')
+                  : const Text('OFF'),
             ),
-            const SizedBox(
-              height: 30,
-            ),
-            ElevatedButton(
-              onPressed: _getBatteryLevel,
-              child: const Text("Get battery level"),
-            )
-          ]),
-        ));
+          )
+        ]),
+      ),
+    );
   }
 
   Future<void> _getBatteryLevel() async {
@@ -70,5 +92,26 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       batteryLevel = level;
     });
+  }
+
+  Future<void> _checkBluetooth() async {
+    bool currentState = false;
+    try {
+      final bool status =
+          await platformBluetooth.invokeMethod(bluetoothOnMethodName);
+      currentState = status;
+    } on PlatformException catch (e) {
+      errorMessage = '${e.message}';
+      SnackBar snack = SnackBar(content: Text(errorMessage));
+      ScaffoldMessenger.of(context).showSnackBar(snack);
+    }
+    setState(
+      () {
+        currentState
+            ? bluetoothStatus = BluetoothConnection.bluetoothON
+            : bluetoothStatus = BluetoothConnection.bluetoothOFF;
+        print("Anikuttan $currentState");
+      },
+    );
   }
 }
